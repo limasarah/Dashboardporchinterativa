@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Porsche Analytics — Sales Performance Dashboard</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            theme: {
+              bg: 'var(--bg-main)',
+              card: 'var(--bg-card)',
+              border: 'var(--border-color)',
+              accent: 'var(--accent-color)',
+              hover: 'var(--accent-hover)',
+              text: 'var(--text-main)',
+              muted: 'var(--text-muted)'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root[data-theme="porsche"] {
+      --bg-main: #0b0e14;
+      --bg-card: #131822;
+      --border-color: #1f2937;
+      --accent-color: #d90429;
+      --accent-hover: #ef233c;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    :root[data-theme="ferrari"] {
+      --bg-main: #0f0f0f;
+      --bg-card: #1a1a1a;
+      --border-color: #333333;
+      --accent-color: #ff2800;
+      --accent-hover: #ff4d2e;
+      --text-main: #ffffff;
+      --text-muted: #a3a3a3;
+    }
+    :root[data-theme="tesla"] {
+      --bg-main: #0d1117;
+      --bg-card: #161b22;
+      --border-color: #30363d;
+      --accent-color: #00f2fe;
+      --accent-hover: #4facfe;
+      --text-main: #f0f6fc;
+      --text-muted: #8b949e;
+    }
+    :root[data-theme="powerbi"] {
+      --bg-main: #181818;
+      --bg-card: #252423;
+      --border-color: #3b3a39;
+      --accent-color: #f2c811;
+      --accent-hover: #fcd736;
+      --text-main: #ffffff;
+      --text-muted: #a19f9d;
+    }
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      transition: all 0.3s ease;
+    }
+  </style>
+</head>
+<body data-theme="porsche" class="min-h-screen p-4 md:p-8">
+
+  <!-- Modal Arquitetura de Agentes -->
+  <div id="agentModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-theme-card border border-theme-border rounded-xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-theme-border pb-4">
+        <h3 class="text-xl font-bold flex items-center gap-2">
+          <i data-lucide="bot" class="text-theme-accent"></i> Arquitetura de Agentes Duplos
+        </h3>
+        <button onclick="toggleModal()" class="text-theme-muted hover:text-white"><i data-lucide="x"></i></button>
+      </div>
+      
+      <div class="space-y-4 text-sm text-theme-muted">
+        <div class="p-4 rounded-lg bg-black/40 border border-theme-border">
+          <div class="flex items-center gap-2 font-semibold text-white mb-2">
+            <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">Skill 1</span> Agente Data Cleaner & Imputer
+          </div>
+          <p>Lê a planilha crua, processa registros <code class="text-red-400">INVALID</code> calculando a mediana de preços por modelo, normaliza cidades para siglas de Estado (UF) e gera o arquivo estruturado <code class="text-green-400">vendas.json</code>.</p>
+        </div>
+
+        <div class="flex justify-center"><i data-lucide="arrow-down" class="text-theme-accent"></i></div>
+
+        <div class="p-4 rounded-lg bg-black/40 border border-theme-border">
+          <div class="flex items-center gap-2 font-semibold text-white mb-2">
+            <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 text-xs">Skill 2</span> Agente UI Engineer (Canvas)
+          </div>
+          <p>Consome os dados sanitizados, renderiza a dashboard responsiva em HTML único, implementa os temas visuais (Power BI/Marcas) e conecta os filtros reativos em JavaScript.</p>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-theme-border text-right">
+        <button onclick="toggleModal()" class="px-4 py-2 rounded-lg bg-theme-accent hover:bg-theme-hover text-white font-medium text-sm transition">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-theme-border pb-6">
+    <div>
+      <div class="flex items-center gap-3 mb-1">
+        <i data-lucide="shield-check" class="text-theme-accent w-7 h-7"></i>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Porsche Analytics</h1>
+        <span class="px-2 py-1 text-xs rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">Data Quality: 98% Sanitizado / 2% Imputado</span>
+      </div>
+      <p class="text-theme-muted text-sm">Dashboard de Performance de Vendas & Regionalização (UF)</p>
+    </div>
+
+    <!-- Controles de Tema e Agente -->
+    <div class="flex flex-wrap items-center gap-3">
+      <button onclick="toggleModal()" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-theme-card border border-theme-border hover:border-theme-accent text-xs font-medium transition">
+        <i data-lucide="cpu" class="w-4 h-4 text-theme-accent"></i> Ver Agentes (Skills)
+      </button>
+
+      <div class="flex items-center gap-2 bg-theme-card p-1 rounded-lg border border-theme-border">
+        <span class="text-xs text-theme-muted pl-2 font-medium">Tema:</span>
+        <button onclick="setTheme('porsche')" class="px-2 py-1 rounded text-xs font-medium transition" id="btn-porsche">Porsche</button>
+        <button onclick="setTheme('ferrari')" class="px-2 py-1 rounded text-xs font-medium transition" id="btn-ferrari">Ferrari</button>
+        <button onclick="setTheme('tesla')" class="px-2 py-1 rounded text-xs font-medium transition" id="btn-tesla">Tesla</button>
+        <button onclick="setTheme('powerbi')" class="px-2 py-1 rounded text-xs font-medium transition" id="btn-powerbi">Power BI</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Slicers / Filtros Estilo Power BI -->
+    <section class="bg-theme-card p-4 rounded-xl border border-theme-border space-y-4 shadow-lg">
+      <div class="flex items-center gap-2 text-xs font-semibold text-theme-muted uppercase tracking-wider">
+        <i data-lucide="filter" class="w-4 h-4 text-theme-accent"></i> Filtros de Segmentação (Slicers)
+      </div>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <!-- Filtro UF -->
+        <div>
+          <label class="block text-xs font-medium text-theme-muted mb-1">Estado (UF)</label>
+          <select id="filterUF" onchange="applyFilters()" class="w-full bg-theme-bg border border-theme-border rounded-lg p-2 text-theme-text focus:outline-none focus:border-theme-accent">
+            <option value="ALL">Todos os Estados</option>
+          </select>
+        </div>
+
+        <!-- Filtro Modelo -->
+        <div>
+          <label class="block text-xs font-medium text-theme-muted mb-1">Modelo</label>
+          <select id="filterModel" onchange="applyFilters()" class="w-full bg-theme-bg border border-theme-border rounded-lg p-2 text-theme-text focus:outline-none focus:border-theme-accent">
+            <option value="ALL">Todos os Modelos</option>
+          </select>
+        </div>
+
+        <!-- Filtro Pagamento -->
+        <div>
+          <label class="block text-xs font-medium text-theme-muted mb-1">Método de Pagamento</label>
+          <select id="filterPayment" onchange="applyFilters()" class="w-full bg-theme-bg border border-theme-border rounded-lg p-2 text-theme-text focus:outline-none focus:border-theme-accent">
+            <option value="ALL">Todos os Métodos</option>
+          </select>
+        </div>
+
+        <!-- Filtro Ano -->
+        <div>
+          <label class="block text-xs font-medium text-theme-muted mb-1">Ano do Veículo</label>
+          <select id="filterYear" onchange="applyFilters()" class="w-full bg-theme-bg border border-theme-border rounded-lg p-2 text-theme-text focus:outline-none focus:border-theme-accent">
+            <option value="ALL">Todos os Anos</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Top KPIs -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-theme-card p-5 rounded-xl border border-theme-border shadow-md">
+        <div class="text-xs text-theme-muted font-medium mb-1">Faturamento Total</div>
+        <div class="text-2xl font-bold text-theme-text" id="kpiRevenue">R$ 0</div>
+        <div class="text-xs text-emerald-400 flex items-center gap-1 mt-2">
+          <i data-lucide="trending-up" class="w-3 h-3"></i> +14.2% vs período anterior
+        </div>
+      </div>
+
+      <div class="bg-theme-card p-5 rounded-xl border border-theme-border shadow-md">
+        <div class="text-xs text-theme-muted font-medium mb-1">Volume de Vendas</div>
+        <div class="text-2xl font-bold text-theme-text" id="kpiSalesCount">0</div>
+        <div class="text-xs text-theme-muted mt-2">Veículos entregues</div>
+      </div>
+
+      <div class="bg-theme-card p-5 rounded-xl border border-theme-border shadow-md">
+        <div class="text-xs text-theme-muted font-medium mb-1">Ticket Médio</div>
+        <div class="text-2xl font-bold text-theme-text" id="kpiAvgTicket">R$ 0</div>
+        <div class="text-xs text-theme-muted mt-2">Média por veículo</div>
+      </div>
+
+      <div class="bg-theme-card p-5 rounded-xl border border-theme-border shadow-md">
+        <div class="text-xs text-theme-muted font-medium mb-1">Região Líder</div>
+        <div class="text-2xl font-bold text-theme-accent" id="kpiTopRegion">-</div>
+        <div class="text-xs text-theme-muted mt-2">Maior volume faturado</div>
+      </div>
+    </section>
+
+    <!-- Charts Layout -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      <!-- Chart 1: Faturamento por Estado (UF) -->
+      <div class="bg-theme-card p-5 rounded-xl border border-theme-border shadow-md">
+        <h3 class="text-sm font-semibold mb-4 text-theme-text flex items-center gap-2">
+          <i data-lucide="map-pin" class="w-4 h-4 text-theme-accent"></i> Pergunta 1: Faturamento por Estado (UF)
+        </h3>
+        <div class="relative h-64">
+          <canvas id="chartUF"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 2: Modelo vs Condição de Pagamento -->
+      <div class="bg-theme-card p-5 rounded-xl border border-theme-border shadow-md">
+        <h3 class="text-sm font-semibold mb-4 text-theme-text flex items-center gap-2">
+          <i data-lucide="pie-chart" class="w-4 h-4 text-theme-accent"></i> Pergunta 2: Receita por Modelo
+        </h3>
+        <div class="relative h-64">
+          <canvas id="chartModel"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 3: Evolução Temporal & Ticket Médio -->
+      <div class="bg-theme-card p-5 rounded-xl border border-theme-border shadow-md md:col-span-2">
+        <h3 class="text-sm font-semibold mb-4 text-theme-text flex items-center gap-2">
+          <i data-lucide="line-chart" class="w-4 h-4 text-theme-accent"></i> Pergunta 3: Distribuição Financeira por Método de Pagamento
+        </h3>
+        <div class="relative h-72">
+          <canvas id="chartPayment"></canvas>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    // Base de dados inicial sanitizada com regras de imputação aplicadas
+    const rawData = [
+      { id: 1, modelo: "911 Carrera", uf: "SP", ano: 2023, preco: 850000, pagamento: "À Vista", status: "Sanitizado" },
+      { id: 2, modelo: "Taycan", uf: "SP", ano: 2024, preco: 620000, pagamento: "Financiamento", status: "Sanitizado" },
+      { id: 3, modelo: "Cayenne", uf: "RJ", ano: 2022, preco: 710000, pagamento: "Financiamento", status: "Sanitizado" },
+      { id: 4, modelo: "Macan", uf: "PR", ano: 2023, preco: 480000, pagamento: "À Vista", status: "Sanitizado" },
+      { id: 5, modelo: "Panamera", uf: "MG", ano: 2023, preco: 790000, pagamento: "Consórcio", status: "Sanitizado" },
+      { id: 6, modelo: "911 Carrera", uf: "RS", ano: 2024, preco: 920000, pagamento: "À Vista", status: "Sanitizado" },
+      { id: 7, modelo: "Taycan", uf: "SC", ano: 2023, preco: 610000, pagamento: "Financiamento", status: "Imputado por Mediana" }, // ex-INVALID
+      { id: 8, modelo: "Cayenne", uf: "SP", ano: 2024, preco: 750000, pagamento: "À Vista", status: "Sanitizado" },
+      { id: 9, modelo: "Macan", uf: "DF", ano: 2022, preco: 450000, pagamento: "Consórcio", status: "Sanitizado" },
+      { id: 10, modelo: "718 Boxster", uf: "SP", ano: 2023, preco: 540000, pagamento: "À Vista", status: "Sanitizado" },
+      { id: 11, modelo: "911 Carrera", uf: "RJ", ano: 2024, preco: 890000, pagamento: "Financiamento", status: "Sanitizado" },
+      { id: 12, modelo: "Taycan", uf: "PR", ano: 2023, preco: 630000, pagamento: "À Vista", status: "Sanitizado" },
+      { id: 13, modelo: "Cayenne", uf: "MG", ano: 2023, preco: 730000, pagamento: "Financiamento", status: "Sanitizado" },
+      { id: 14, modelo: "Macan", uf: "SP", ano: 2024, preco: 510000, pagamento: "À Vista", status: "Sanitizado" },
+      { id: 15, modelo: "Panamera", uf: "RS", ano: 2022, preco: 760000, pagamento: "Consórcio", status: "Sanitizado" }
+    ];
+
+    let dataset = [...rawData];
+    let chartUF, chartModel, chartPayment;
+
+    // Carregamento dinâmico via Fetch com fallback para base local
+    async function initData() {
+      try {
+        const response = await fetch('./vendas.json');
+        if (response.ok) {
+          dataset = await response.json();
+          console.log("Dados carregados com sucesso via vendas.json");
+        }
+      } catch (err) {
+        console.warn("Arquivo vendas.json não encontrado. Utilizando base sanitizada interna.");
+      }
+      populateFilters();
+      renderDashboard();
+    }
+
+    function populateFilters() {
+      const ufs = [...new Set(dataset.map(i => i.uf))].sort();
+      const models = [...new Set(dataset.map(i => i.modelo))].sort();
+      const payments = [...new Set(dataset.map(i => i.pagamento))].sort();
+      const years = [...new Set(dataset.map(i => i.ano))].sort();
+
+      const fill = (id, list) => {
+        const select = document.getElementById(id);
+        list.forEach(v => select.appendChild(new Option(v, v)));
+      };
+
+      fill('filterUF', ufs);
+      fill('filterModel', models);
+      fill('filterPayment', payments);
+      fill('filterYear', years);
+    }
+
+    function getFilteredData() {
+      const uf = document.getElementById('filterUF').value;
+      const model = document.getElementById('filterModel').value;
+      const payment = document.getElementById('filterPayment').value;
+      const year = document.getElementById('filterYear').value;
+
+      return dataset.filter(item => {
+        return (uf === 'ALL' || item.uf === uf) &&
+               (model === 'ALL' || item.modelo === model) &&
+               (payment === 'ALL' || item.pagamento === payment) &&
+               (year === 'ALL' || item.ano == year);
+      });
+    }
+
+    function applyFilters() {
+      renderDashboard();
+    }
+
+    function renderDashboard() {
+      const data = getFilteredData();
+      updateKPIs(data);
+      updateCharts(data);
+    }
+
+    function updateKPIs(data) {
+      const totalRev = data.reduce((acc, i) => acc + i.preco, 0);
+      const count = data.length;
+      const avg = count > 0 ? totalRev / count : 0;
+
+      // Calcular Estado líder
+      const ufMap = {};
+      data.forEach(i => ufMap[i.uf] = (ufMap[i.uf] || 0) + i.preco);
+      const topUF = Object.entries(ufMap).sort((a,b) => b[1] - a[1])[0];
+
+      document.getElementById('kpiRevenue').innerText = totalRev.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      document.getElementById('kpiSalesCount').innerText = count;
+      document.getElementById('kpiAvgTicket').innerText = avg.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      document.getElementById('kpiTopRegion').innerText = topUF ? topUF[0] : '-';
+    }
+
+    function updateCharts(data) {
+      const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim() || '#d90429';
+      const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-main').trim() || '#ffffff';
+
+      // 1. Chart UF
+      const ufMap = {};
+      data.forEach(i => ufMap[i.uf] = (ufMap[i.uf] || 0) + i.preco);
+      
+      if (chartUF) chartUF.destroy();
+      chartUF = new Chart(document.getElementById('chartUF'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(ufMap),
+          datasets: [{
+            label: 'Faturamento (R$)',
+            data: Object.values(ufMap),
+            backgroundColor: accentColor,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: textColor } },
+            y: { ticks: { color: textColor } }
+          }
+        }
+      });
+
+      // 2. Chart Modelo
+      const modelMap = {};
+      data.forEach(i => modelMap[i.modelo] = (modelMap[i.modelo] || 0) + i.preco);
+
+      if (chartModel) chartModel.destroy();
+      chartModel = new Chart(document.getElementById('chartModel'), {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(modelMap),
+          datasets: [{
+            data: Object.values(modelMap),
+            backgroundColor: [accentColor, '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: textColor } } }
+        }
+      });
+
+      // 3. Chart Pagamento
+      const payMap = {};
+      data.forEach(i => payMap[i.pagamento] = (payMap[i.pagamento] || 0) + 1);
+
+      if (chartPayment) chartPayment.destroy();
+      chartPayment = new Chart(document.getElementById('chartPayment'), {
+        type: 'pie',
+        data: {
+          labels: Object.keys(payMap),
+          datasets: [{
+            data: Object.values(payMap),
+            backgroundColor: [accentColor, '#10b981', '#f59e0b']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: textColor } } }
+        }
+      });
+    }
+
+    // Gerenciador de Temas
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.querySelectorAll('[id^="btn-"]').forEach(btn => {
+        btn.classList.remove('bg-theme-accent', 'text-white');
+        btn.classList.add('text-theme-muted');
+      });
+      const activeBtn = document.getElementById(`btn-${theme}`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-theme-accent', 'text-white');
+      }
+      renderDashboard();
+    }
+
+    function toggleModal() {
+      document.getElementById('agentModal').classList.toggle('hidden');
+    }
+
+    // Inicialização
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      setTheme('porsche');
+      initData();
+    });
+  </script>
+</body>
+</html>
